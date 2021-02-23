@@ -4,4 +4,5 @@
 scala/target/*
 scala/project/*
 scala/input/*
+scala/.idea/*
 
