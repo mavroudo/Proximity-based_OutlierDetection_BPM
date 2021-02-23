@@ -1,2 +1,7 @@
 *.class
 *.log
+
+scala/target/*
+scala/project/*
+scala/input/*
+
