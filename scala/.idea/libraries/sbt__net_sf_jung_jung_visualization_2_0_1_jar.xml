@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="sbt: net.sf.jung:jung-visualization:2.0.1:jar">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.cache/coursier/v1/https/repo1.maven.org/maven2/net/sf/jung/jung-visualization/2.0.1/jung-visualization-2.0.1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.cache/coursier/v1/https/repo1.maven.org/maven2/net/sf/jung/jung-visualization/2.0.1/jung-visualization-2.0.1-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
