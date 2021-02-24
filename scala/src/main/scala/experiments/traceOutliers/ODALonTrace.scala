@@ -18,19 +18,19 @@ object ODALonTrace {
       .getOrCreate()
     println(s"Starting Spark version ${spark.version}")
 
-    val ks = List(5, 10, 15, 25, 50, 75, 100, 200)
+    val ks = List(2, 3, 5, 10, 15, 25, 50, 75, 100, 200)
     val ns = List(0.5, 1, 1.25, 1.5, 1.75, 2, 2.5, 2.75, 3, 3.25, 3.5, 3.75, 4)
 
-    //    val ks =List(5)
-    //    val ns =List(2)
+    //        val ks =List(5)
+    //    val ns = List(4)
 
-    //    val files = List("test_0.01")
+    //    val files = List("30_activities_10k_0.1")
     val files = List("30_activities_10k_0.005", "30_activities_10k_0.01", "30_activities_10k_0.05", "30_activities_10k_0.1")
     val converter: Structs.Log => RDD[Structs.Trace_Vector] = Utils.Utils.convert_to_vector_only_durations
 
 
     for (dataset <- files) {
-      val output = "output/" + dataset + "_odal_trace"
+      val output = "output/" + dataset + "_odal2_trace"
       val filename = "input/outliers_" + dataset + ".xes"
       val log = Utils.Utils.read_xes(filename)
       val results_file = "input/results_" + dataset + "_description"
@@ -38,20 +38,20 @@ object ODALonTrace {
       var exp = new ListBuffer[String]()
 
       for (k <- ks) {
-        val n = 2
+        val n = 4
         println(dataset, k)
         val t2 = System.nanoTime
         val zeta = results.size
-        val outliers2 = ODAL.findOutliersAlignment(log, k, n)
+        val outliers2 = ODAL.find_outliers_admition(log, k, n)
 
         val duration2 = (System.nanoTime - t2) / 1e9d
         val found2 = outliers2.count(i => results.map(_._2).contains(i)).toDouble / outliers2.length
         exp += dataset + "," + k.toString + "," + n.toString + "," + duration2.toString + "," + found2.toString + "," + outliers2.length.toString + "\n"
       }
       for (n <- ns) {
-        val k = 75
+        val k = 5
         val t2 = System.nanoTime
-        val outliers2 = ODAL.findOutliersAlignment(log, k, n.toFloat)
+        val outliers2 = ODAL.find_outliers_admition(log, k, n.toFloat)
         val duration2 = (System.nanoTime - t2) / 1e9d
         println(dataset, n)
         val found2 = outliers2.count(i => results.map(_._2).contains(i)).toDouble / outliers2.length

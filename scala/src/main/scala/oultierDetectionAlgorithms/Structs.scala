@@ -2,6 +2,8 @@ package oultierDetectionAlgorithms
 
 import org.apache.spark.rdd.RDD
 
+import scala.collection.mutable.ListBuffer
+
 object Structs {
 
   case class Sequence(id: Long, events: List[Event])
@@ -19,6 +21,8 @@ object Structs {
   //This is for the "using contextualized"
   case class Trace_Temporal_KNN(id: Long, signature: String, durations: List[Double])
   case class Trace_Temporal(id:Long,durations:List[(String,Double)])
+
+  case class Transformation(id:Long, durations:Array[ListBuffer[Double]], signature:List[Boolean])
 
 
 

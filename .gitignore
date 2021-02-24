@@ -3,6 +3,7 @@
 
 scala/target/*
 scala/project/*
-scala/input/*
+scala/input/bpi_2017.xes
+scala/input/financial_log.xes
 scala/.idea/*
 
