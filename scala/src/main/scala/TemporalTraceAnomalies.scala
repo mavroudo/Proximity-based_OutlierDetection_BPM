@@ -6,7 +6,7 @@ import oultierDetectionAlgorithms.{Distances, InitializeNeighbors, LOF_Spark}
 object TemporalTraceAnomalies {
 
   def main(args: Array[String]): Unit = {
-    val filename = "input/financial_log.xes"
+    val filename = "input/bpi_2012.xes"
     val k = 50 //number of nearest neighbors
     val dims = 10
     val zeta = 10

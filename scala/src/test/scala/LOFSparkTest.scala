@@ -12,7 +12,7 @@ class LOFSparkTest extends FunSuite with BeforeAndAfterAll {
 //  private var spark: SparkSession = _
 //
 //  override def beforeAll(): Unit = {
-//    val filename = "input/financial_log.xes"
+//    val filename = "input/bpi_2012.xes"
 //    val dims = 10
 //    Logger.getLogger("org").setLevel(Level.ERROR)
 //    spark = SparkSession.builder()

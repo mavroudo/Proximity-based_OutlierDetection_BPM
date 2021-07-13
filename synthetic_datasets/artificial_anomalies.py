@@ -8,7 +8,7 @@ Created on Tue Jan 12 11:31:21 2021
 from pm4py.objects.log.importer.xes import factory as xes_import_factory
 from pm4py.objects.log.exporter.xes import factory as xes_exporter
 import random
-from statistics import mean
+from statistics import mean, stdev
 from datetime import timedelta
 
 def add_reg_date(log):  
@@ -59,7 +59,8 @@ def delay_an_activity(log,trace_id,activity_stats):
     activity_id=random.randint(0,len(log[trace_id])-1)
     activity_name=log[trace_id][activity_id]["concept:name"]
     mean_value=mean(activity_stats[activity_name][0])
-    diff=timedelta(seconds=3*mean_value) #increase the time by 3 times the standard deviation
+    std = stdev(activity_stats[activity_name][0])
+    diff=timedelta(seconds=(3+random.random()/2)*std+mean_value) #increase the time by 3 times the standard deviation
     for event in log[trace_id][activity_id:]:
         event["time:timestamp"]+=diff
     return activity_id
@@ -68,7 +69,8 @@ def create_measurement_error(log,trace_id,activity_stats):
     activity_id=random.randint(0,len(log[trace_id])-2)
     activity_name=log[trace_id][activity_id]["concept:name"]
     mean_value=mean(activity_stats[activity_name][0])
-    diff=timedelta(seconds=3*mean_value)
+    std = stdev(activity_stats[activity_name][0])
+    diff=timedelta(seconds=(3+random.random()/2)*std+mean_value)
     log[trace_id][activity_id]["time:timestamp"]+=diff
     log[trace_id][activity_id+1]["time:timestamp"]-=diff
     return activity_id
@@ -77,7 +79,8 @@ def end_faster_activity(log,trace_id,activity_stats):
     activity_id=random.randint(0,len(log[trace_id])-1)
     activity_name=log[trace_id][activity_id]["concept:name"]
     mean_value=mean(activity_stats[activity_name][0])
-    diff=timedelta(seconds=mean_value*0.7)
+    std = stdev(activity_stats[activity_name][0])
+    diff=timedelta(seconds=mean_value-(3+random.random()/2)*std)
     for event in log[trace_id][activity_id:]:
         event["time:timestamp"]-=diff
     return activity_id
