@@ -7,3 +7,6 @@ scala/input/bpi_2017.xes
 scala/input/financial_log.xes
 scala/.idea/*
 
+*.xes
+*/env/*
+.idea/*
