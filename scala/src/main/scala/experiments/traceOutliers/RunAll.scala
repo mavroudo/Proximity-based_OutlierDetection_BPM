@@ -27,7 +27,7 @@ object RunAll {
         ODALonTrace.main(args)
 
 
-//    val log = Utils.Utils.read_xes("input/financial_log.xes")
+//    val log = Utils.Utils.read_xes("input/bpi_2012.xes")
 //    val log =Utils.Utils.read_xes("input/bpi_2017.xes")
 //    val log =Utils.Utils.read_xes("input/outliers_30_activities_10k_0.1.xes")
 //    val outliers= ODAL.find_outliers_admition(log,10,4.0.toFloat)

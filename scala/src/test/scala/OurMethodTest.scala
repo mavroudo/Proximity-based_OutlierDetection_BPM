@@ -77,11 +77,17 @@ class OurMethodTest extends FunSuite with BeforeAndAfterAll{
   }
 
   test("traditional with normalized"){
-    val k =50
-    val r =0.04
+    val filename = "input/bpi_2015.xes"
+    log = Utils.Utils.read_xes(filename)
+    val k = 5
+    val r = 0.3
+
+    val outliers2=OurMethod.assignOutlyingFactor(log, k,converter = Utils.Utils.convert_to_vector_only_durations,Utils.Utils.distance,"rmse")
+    outliers2.slice(0,10).foreach(println)
+    println("Now the second")
     val outliers=OurMethod.findOutliers(log,k,r,converter = Utils.Utils.convert_to_vector_only_durations,Utils.Utils.distance,"rmse")
-    val found=outliers.count(i=>results.map(_._2).contains(i.toInt))
-    println(found.toDouble/results.size)
+    outliers.foreach(println)
+    println(outliers.length)
   }
 
 

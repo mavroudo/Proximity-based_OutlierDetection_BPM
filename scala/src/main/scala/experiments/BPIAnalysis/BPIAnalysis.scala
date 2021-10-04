@@ -21,7 +21,7 @@ object BPIAnalysis {
       .getOrCreate()
     println(s"Starting Spark version ${spark.version}")
 
-    val filename = "input/bpi_2017.xes"
+    val filename = "input/bpi_2011.xes"
     val log = Utils.Utils.read_xes(filename)
     var exp = new ListBuffer[String]()
     val ks = List(5, 10, 15, 25, 50, 75, 100,150, 200, 250)
@@ -36,14 +36,15 @@ object BPIAnalysis {
     val preprocessed = normalizedDF.rdd.map(row => {
       Structs.Trace_Vector(row.getAs[Long]("id"), row.getAs[DenseVector]("scaledFeatures").values)
     })
+    val distances = OurMethod.initializeDistancesMahalanobis(preprocessed,300,invCovariance).collect()
+    //      val distances = OurMethod.initializeDistances(preprocessed,k,Utils.Utils.distance)
     for (k<-ks){
       println(k)
-      val distances = OurMethod.initializeDistances(preprocessed,k,Utils.Utils.distance)
-//      val distances = OurMethod.initializeDistancesMahalanobis(preprocessed,k,invCovariance)
-      val last = distances.map(x=>(x.id,x.distances.last.distance)).sortBy(_._2).map(_._2).collect()
+//      val last = distances.map(x=>(x.id,x.distances(k).distance)).sortBy(_._2).map(_._2).collect()
+      val last = distances.map(x=>x.distances(k).distance).sortWith((x,y)=>x<y)
       exp += k.toString+","+ last.mkString(",") + "\n"
     }
-    val output = "output/kr_test_bpi2017_rmse"
+    val output = "output/kr_test_bpi2011_mahalanobis"
     val file = new File(output)
     val bw = new BufferedWriter(new FileWriter(file))
     exp.toList.foreach(line => {

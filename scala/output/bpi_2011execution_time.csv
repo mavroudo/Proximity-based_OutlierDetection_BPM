@@ -1,0 +1,8 @@
+Topz,rmse,50,9.150836032
+LOF,rmse,50,9.022638372
+Topz,euclidean,50,9.371734635
+LOF,euclidean,50,9.211358202
+Topz,minkowski,50,14.758757148
+LOF,minkowski,50,14.679791743
+Topz,mahalanobis,50,276.506269019
+LOF,mahalanobis,50,271.543482254

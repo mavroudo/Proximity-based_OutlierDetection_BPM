@@ -79,7 +79,7 @@ object Main {
 
 
   def main(args: Array[String]): Unit = {
-    val filename = "input/financial_log.xes"
+    val filename = "input/bpi_2012.xes"
     val dims = 10
     Logger.getLogger("org").setLevel(Level.ERROR)
     val spark = SparkSession.builder()
