@@ -30,7 +30,7 @@ object ODALonTrace {
 
 
     for (dataset <- files) {
-      val output = "output/" + dataset + "_odal2_trace"
+      val output = "output/" + dataset + "_odal3_trace"
       val filename = "input/outliers_" + dataset + ".xes"
       val log = Utils.Utils.read_xes(filename)
       val results_file = "input/results_" + dataset + "_description"
@@ -38,7 +38,7 @@ object ODALonTrace {
       var exp = new ListBuffer[String]()
 
       for (k <- ks) {
-        val n = 4
+        val n = 2
         println(dataset, k)
         val t2 = System.nanoTime
         val zeta = results.size
@@ -49,7 +49,7 @@ object ODALonTrace {
         exp += dataset + "," + k.toString + "," + n.toString + "," + duration2.toString + "," + found2.toString + "," + outliers2.length.toString + "\n"
       }
       for (n <- ns) {
-        val k = 5
+        val k = 50
         val t2 = System.nanoTime
         val outliers2 = ODAL.find_outliers_admition(log, k, n.toFloat)
         val duration2 = (System.nanoTime - t2) / 1e9d
