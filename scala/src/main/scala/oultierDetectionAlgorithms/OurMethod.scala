@@ -33,16 +33,20 @@ object OurMethod {
     })
     val rddDistances: RDD[DistancesFromTrace] = if (distanceName == "mahalanobis") this.initializeDistancesMahalanobis(preprocessed, k, invCovariance) else this.initializeDistances(preprocessed, k, distance)
     //normalize
-//    val allDistances=rddDistances.flatMap(_.distances.map(_.distance))
-//    val minDistance=allDistances.min()
-//    val maxDistance=allDistances.max()
-//    val normalizedDistancesRdd:RDD[DistancesFromTrace] = rddDistances
-//      .map(x=>DistancesFromTrace(x.id,distances = x.distances
-//        .map(y => DistanceElement(y.id1, y.id2, Utils.min_max_normalization(y.distance, minDistance, maxDistance)))))
+    val allDistances=rddDistances.flatMap(_.distances.map(_.distance))
+    val minDistance=allDistances.min()
+    val maxDistance=allDistances.max()
+    val normalizedDistancesRdd:RDD[DistancesFromTrace] = rddDistances
+      .map(x=>DistancesFromTrace(x.id,distances = x.distances
+        .map(y => DistanceElement(y.id1, y.id2, Utils.min_max_normalization(y.distance, minDistance, maxDistance)))))
 
-    val outliers = rddDistances.filter(neighborhood => {
+//    val outliers = rddDistances.filter(neighborhood => {
+//      neighborhood.distances.last.distance > r
+//    })
+    val outliers = normalizedDistancesRdd.filter(neighborhood => {
       neighborhood.distances.last.distance > r
     })
+
     outliers.map(_.id).collect()
   }
 
