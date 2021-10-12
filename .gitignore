@@ -1,6 +1,6 @@
 *.class
 *.log
-
+autoencoders/__pycache__/*
 scala/target/*
 scala/project/*
 scala/input/bpi_2017.xes
