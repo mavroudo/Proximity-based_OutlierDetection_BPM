@@ -14,7 +14,7 @@ from autorank import autorank, create_report, plot_stats
 
 method_name = "LOF"
 
-metrics = ['RMSE','Euclidean','Minkowski','Mahalanobis']
+metrics = ['RMSE','Euclidean','Chybyshev','Mahalanobis']
 headers=["Distance","file","k","m2","time","f1"]
 constant = "output/30_activities_10k_"
 outliers=["0.1_","0.05_","0.01_","0.005_"]

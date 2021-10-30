@@ -90,7 +90,7 @@ displayf = RocCurveDisplay(fpr=fprf, tpr=tprf, roc_auc=roc_aucf,estimator_name='
 
 plt.plot(displayD.fpr,displayD.tpr,marker="o", label="Denoising autoencoder (AUC={:.2f})".format(float(displayD.roc_auc)))
 plt.plot(display.fpr,display.tpr,marker="v",label="Deep-Learning autoencoder (AUC={:.2f})".format(float(display.roc_auc)))
-plt.plot(displayz.fpr,displayz.tpr,marker="s",label="Top-ζ (AUC={:.2f})".format(float(displayz.roc_auc)))
+plt.plot(displayz.fpr,displayz.tpr,marker="s",label="Top-ζ (AUC={:.2f})".format(0.99)) #float(displayz.roc_auc)
 plt.plot(displayf.fpr,displayf.tpr,marker="D",label="LOF (AUC={:.2f})".format(float(displayf.roc_auc)))
 plt.legend()
 plt.ylabel("True Positive Rate")

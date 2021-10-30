@@ -15,7 +15,7 @@ from autorank import autorank, create_report, plot_stats
 
 method_name = "LOF"
 
-metrics = ['RMSE','Euclidean','Minkowski','Mahalanobis']
+metrics = ['RMSE','Euclidean','Chebyshev','Mahalanobis']
 headers=["Distance","file","k","m2","time","precision","reported"]
 constant = "output/30_activities_10k_"
 outliers=["0.1_","0.05_","0.01_","0.005_"]
@@ -74,9 +74,10 @@ for index,outlier in enumerate(outliers):
 
 
 
-
+import matplotlib.pyplot as plt
 results=pd.DataFrame(index=names,columns=metrics,data=data)
 ranks=autorank(results,alpha=0.01)
 create_report(ranks)
 x=plot_stats(ranks)
+plt.tight_layout()
 x.get_figure().savefig("output2/results/prob_distances.eps",format="eps")
