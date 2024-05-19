@@ -44,11 +44,14 @@ class DaGMM(nn.Module):
 
 
 if __name__ == "__main__":
+
+    filename = "../scala/input/outliers_30_activities_10k_0.005.xes"
+    description_file = "../scala/input/results_30_activities_10k_0.005_description"
+    model_name = "models/model_deep_0.005"
+    epoches = 500
+
     # Read XES file
-    log = xes_import_factory.apply("input/outliers_30_activities_10k_0.005.xes")
-    description_file = "input/results_30_activities_10k_0.005_description"
-    model_name = "model_deep_0.005"
-    epoches = 10
+    log = xes_import_factory.apply(filename)
 
     # Load outlier IDs
     outlier_ids = []

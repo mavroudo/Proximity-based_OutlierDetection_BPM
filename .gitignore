@@ -12,4 +12,4 @@ scala/.idea/*
 .idea/*
 
 autoencoders/.idea/
-autoencoders/models/model_
+autoencoders/models/model_*

@@ -5,94 +5,102 @@ Created on Tue Oct 12 12:10:19 2021
 
 @author: mavroudo
 """
-from pm4py.objects.log.importer.xes import factory as xes_import_factory
+from pm4py.objects.log.importer.xes import importer as xes_import_factory
 import torch
-import numpy as np
 import matplotlib.pyplot as plt
-from autoencoders import AE,transformTraces
+from autoencoders import Autoencoder, transform_traces
 from deep_learning_autoencoders import DaGMM
-from sklearn.metrics import RocCurveDisplay,auc,roc_curve, PrecisionRecallDisplay
+from sklearn.metrics import RocCurveDisplay, auc, roc_curve
 import random
 
-last="0.1"
-#read log, transform
-log=xes_import_factory.apply("input/outliers_30_activities_10k_"+last+".xes")
-transformed = transformTraces(log)
-testSet = [torch.FloatTensor(i) for i in transformed ]
-#load true outliers
-r=[]
-with open("input/results_30_activities_10k_"+last+"_description","r") as f:
-    for line in f:
-        r.append(int(line.split(",")[1]))
 
-#denoising
-model = AE(30)
-loss_function=torch.nn.MSELoss()
-optimizer = torch.optim.SGD(model.parameters(),lr=0.01,momentum=0.9,nesterov=True, weight_decay=1e-5)
-modelD=torch.load("model_"+last)
-modelD.eval()
-lossesD=[]
-for trace in testSet:
-    reconstructed=modelD(trace)
-    loss = loss_function(reconstructed, trace)
-    lossesD.append(loss.item())
+if __name__ == "__main__":
+    last = "0.005"
+    log_file = f"../scala/input/outliers_30_activities_10k_{last}.xes"
+    description_file = f"../scala/input/results_30_activities_10k_{last}_description"
+    denoising_model_file = f"models/model_{last}"
+    deep_learning_model_file = f"models/model_deep_{last}"
+    scores_topz_file = f'../scala/output2/scores_topz_{last}.txt'
+    scores_lof_file = f'../scala/output2/scores_lof_{last}.txt'
+    output_plot_file = f'compare_{last}.eps'
 
-#deep learning
-model = DaGMM()
-loss_function=torch.nn.MSELoss()
-optimizer = torch.optim.SGD(model.parameters(),lr=0.01,momentum=0.9,nesterov=True, weight_decay=1e-5)
-model=torch.load("model_deep_"+last)
-model.eval()
-losses=[]
-for index,trace in enumerate(testSet):
-    reconstructed=model(trace)
-    loss = loss_function(reconstructed, trace)
-    losses.append(loss.item())
-    
+    # Read the log and transform it
+    log = xes_import_factory.apply(log_file)
+    transformed = transform_traces(log)
+    test_set = [torch.FloatTensor(i) for i in transformed]
 
-losses_normalizedD = [(float(i)-min(lossesD))/(max(lossesD)-min(lossesD)) for i in lossesD]
-true_outliers=[1 if i in r else 0 for i in range(len(lossesD))]
-fprD, tprD, thresholdsD = roc_curve(true_outliers, losses_normalizedD)
-roc_aucD = auc(fprD, tprD)
-numbers=[random.randint(1,len(fprD)-2) for _ in range(8)]
-fprD=[fprD[0]]+[fprD[i] for i in sorted(numbers)]+[fprD[-1]]
-tprD=[tprD[0]]+[tprD[i] for i in sorted(numbers)]+[tprD[-1]]
-displayD = RocCurveDisplay(fpr=fprD, tpr=tprD, roc_auc=roc_aucD,estimator_name='Denoising autoencoder')
-losses_normalized = [(float(i)-min(losses))/(max(losses)-min(losses)) for i in losses]
-true_outliers=[1 if i in r else 0 for i in range(len(losses))]
-fpr, tpr, thresholds = roc_curve(true_outliers, losses_normalized)
-roc_auc = auc(fpr, tpr)
-numbers=[random.randint(1,len(fpr)-2) for _ in range(8)]
-fpr=[fpr[0]]+[fpr[i] for i in sorted(numbers)]+[fpr[-1]]
-tpr=[tpr[0]]+[tpr[i] for i in sorted(numbers)]+[tpr[-1]]
-display = RocCurveDisplay(fpr=fpr, tpr=tpr, roc_auc=roc_auc,estimator_name='Deeplearning autoencoder')
-topz=[]
-with open('input/scores_topz_'+last+'.txt','r') as f:
-    topz=[list(map(float,line.split(","))) for line in f][0]
-topz_normalized = [(float(i)-min(topz))/(max(topz)-min(topz)) for i in topz]
-fprz, tprz, thresholdsz = roc_curve(true_outliers, topz_normalized)
-roc_aucz = auc(fprz, tprz)
-numbers=[random.randint(1,len(fprz)-2) for _ in range(8)]
-fprz=[fprz[0]]+[fprz[i] for i in sorted(numbers)]+[fprz[-1]]
-tprz=[tprz[0]]+[tprz[i] for i in sorted(numbers)]+[tprz[-1]]
-displayz = RocCurveDisplay(fpr=fprz, tpr=tprz, roc_auc=roc_aucz,estimator_name='Top-ζ')
-lof=[]
-with open('input/scores_lof_'+last+'.txt','r') as f:
-    lof=[list(map(float,line.split(","))) for line in f][0]
-lof_normalized = [(float(i)-min(lof))/(max(lof)-min(lof)) for i in lof]
-fprf, tprf, thresholdsf = roc_curve(true_outliers, lof_normalized)
-roc_aucf = auc(fprf, tprf)
-numbers=[random.randint(1,len(fprf)-2) for _ in range(8)]
-fprf=[fprf[0]]+[fprf[i] for i in sorted(numbers)]+[fprf[-1]]
-tprf=[tprf[0]]+[tprf[i] for i in sorted(numbers)]+[tprf[-1]]
-displayf = RocCurveDisplay(fpr=fprf, tpr=tprf, roc_auc=roc_aucf,estimator_name='LOF')
+    # Load true outliers
+    outlier_ids = []
+    with open(description_file, "r") as f:
+        for line in f:
+            outlier_ids.append(int(line.split(",")[1]))
 
+    # Evaluate Denoising Autoencoder
+    model_denoising = torch.load(denoising_model_file)
+    model_denoising.eval()
+    loss_function = torch.nn.MSELoss()
+    losses_denoising = []
 
-plt.plot(displayD.fpr,displayD.tpr,marker="o", label="Denoising autoencoder (AUC={:.2f})".format(float(displayD.roc_auc)))
-plt.plot(display.fpr,display.tpr,marker="v",label="Deep-Learning autoencoder (AUC={:.2f})".format(float(display.roc_auc)))
-plt.plot(displayz.fpr,displayz.tpr,marker="s",label="Top-ζ (AUC={:.2f})".format(0.99)) #float(displayz.roc_auc)
-plt.plot(displayf.fpr,displayf.tpr,marker="D",label="LOF (AUC={:.2f})".format(float(displayf.roc_auc)))
-plt.legend()
-plt.ylabel("True Positive Rate")
-plt.xlabel("False Positive Rate")
-plt.savefig('compare_0.1.eps',format='eps')
+    for trace in test_set:
+        with torch.no_grad():
+            reconstructed = model_denoising(trace)
+            loss = loss_function(reconstructed, trace)
+            losses_denoising.append(loss.item())
+
+    # Evaluate Deep Learning Autoencoder
+    model_deep = torch.load(deep_learning_model_file)
+    model_deep.eval()
+    losses_deep = []
+
+    for trace in test_set:
+        with torch.no_grad():
+            reconstructed = model_deep(trace)
+            loss = loss_function(reconstructed, trace)
+            losses_deep.append(loss.item())
+
+    # Normalize losses
+    losses_normalized_denoising = [(i - min(losses_denoising)) / (max(losses_denoising) - min(losses_denoising)) for i
+                                   in losses_denoising]
+    true_outliers = [1 if i in outlier_ids else 0 for i in range(len(losses_denoising))]
+    fpr_denoising, tpr_denoising, _ = roc_curve(true_outliers, losses_normalized_denoising)
+    roc_auc_denoising = auc(fpr_denoising, tpr_denoising)
+    display_denoising = RocCurveDisplay(fpr=fpr_denoising, tpr=tpr_denoising, roc_auc=roc_auc_denoising,
+                                        estimator_name='Denoising autoencoder')
+
+    losses_normalized_deep = [(i - min(losses_deep)) / (max(losses_deep) - min(losses_deep)) for i in losses_deep]
+    fpr_deep, tpr_deep, _ = roc_curve(true_outliers, losses_normalized_deep)
+    roc_auc_deep = auc(fpr_deep, tpr_deep)
+    display_deep = RocCurveDisplay(fpr=fpr_deep, tpr=tpr_deep, roc_auc=roc_auc_deep,
+                                   estimator_name='Deep-Learning autoencoder')
+
+    # Load and evaluate Top-ζ method
+    with open(scores_topz_file, 'r') as f:
+        topz_scores = list(map(float, f.readline().split(',')))
+    topz_normalized = [(i - min(topz_scores)) / (max(topz_scores) - min(topz_scores)) for i in topz_scores]
+    fpr_topz, tpr_topz, _ = roc_curve(true_outliers, topz_normalized)
+    roc_auc_topz = auc(fpr_topz, tpr_topz)
+    display_topz = RocCurveDisplay(fpr=fpr_topz, tpr=tpr_topz, roc_auc=roc_auc_topz, estimator_name='Top-ζ')
+
+    # Load and evaluate LOF method
+    with open(scores_lof_file, 'r') as f:
+        lof_scores = list(map(float, f.readline().split(',')))
+    lof_normalized = [(i - min(lof_scores)) / (max(lof_scores) - min(lof_scores)) for i in lof_scores]
+    fpr_lof, tpr_lof, _ = roc_curve(true_outliers, lof_normalized)
+    roc_auc_lof = auc(fpr_lof, tpr_lof)
+    display_lof = RocCurveDisplay(fpr=fpr_lof, tpr=tpr_lof, roc_auc=roc_auc_lof, estimator_name='LOF')
+
+    # Plot ROC Curves
+    plt.figure(figsize=(10, 8))
+    plt.plot(display_denoising.fpr, display_denoising.tpr, marker="o",
+             label=f"Denoising autoencoder (AUC={roc_auc_denoising:.2f})")
+    plt.plot(display_deep.fpr, display_deep.tpr, marker="v",
+             label=f"Deep-Learning autoencoder (AUC={roc_auc_deep:.2f})")
+    plt.plot(display_topz.fpr, display_topz.tpr, marker="s", label=f"Top-ζ (AUC={roc_auc_topz:.2f})")
+    plt.plot(display_lof.fpr, display_lof.tpr, marker="D", label=f"LOF (AUC={roc_auc_lof:.2f})")
+
+    plt.legend()
+    plt.ylabel("True Positive Rate")
+    plt.xlabel("False Positive Rate")
+    plt.title("ROC Curve Comparison of Outlier Detection Methods")
+    plt.savefig(output_plot_file, format='eps')
+    plt.show()

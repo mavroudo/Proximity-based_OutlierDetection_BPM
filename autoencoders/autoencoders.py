@@ -156,9 +156,9 @@ def normalize_losses(losses):
 
 
 if __name__ == "__main__":
-    filename = "input/outliers_30_activities_10k_0.005.xes"
-    outlier_description = "input/results_30_activities_10k_0.005_description"
-    model_name = "model_0.005"
+    filename = "../scala/input/outliers_30_activities_10k_0.005.xes"
+    outlier_description = "../scala/input/results_30_activities_10k_0.005_description"
+    model_name = "models/model_0.005"
     epoches = 500
 
     # Check for GPU availability
@@ -196,7 +196,7 @@ if __name__ == "__main__":
             running_loss += loss.item()
         loss = running_loss / len(trainSet)
         train_loss.append(loss)
-        print('Epoch {} of {}, Train Loss: {:.3f}'.format(epoch + 1, epoches, loss))
+        print(f'Epoch {epoch + 1}/{epoches}, Train Loss: {average_loss:.3f}')
 
     # Process can start from here by importing a previously created model
     # Save model
