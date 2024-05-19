@@ -10,4 +10,6 @@ scala/.idea/*
 *.xes
 */env/*
 .idea/*
+
 autoencoders/.idea/
+autoencoders/models/model_
