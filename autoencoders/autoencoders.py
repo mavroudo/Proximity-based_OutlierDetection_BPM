@@ -5,18 +5,30 @@ Created on Sun Sep 26 19:37:18 2021
 
 @author: mavroudo
 """
-from pm4py.objects.log.importer.xes import factory as xes_import_factory
-from pm4py.algo.filtering.log.attributes import attributes_filter
-from pm4py.objects.log.log import EventLog
 from statistics import mean, stdev
-import torch
-import torch.nn.functional as F
-import numpy as np
-import matplotlib.pyplot as plt
 
-def mean_value_per_Activity(log):
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from pm4py.algo.filtering.log.attributes import attributes_filter
+from pm4py.objects.log.importer.xes import importer as xes_import_factory
+from pm4py.objects.log.obj import EventLog
+from sklearn.metrics import RocCurveDisplay, auc, roc_curve
+
+
+def mean_value_per_activity(log: EventLog):
+    """
+    Calculate the mean value of durations per activity.
+
+    Args:
+    log (EventLog): The event log object.
+
+    Returns:
+    dict: A dictionary with activity names as keys and lists of durations as values.
+    list: A list of lists containing durations for each trace.
+    """
     data = dict()
-    data_durations = [[] for i in log]
+    data_durations = [[] for _ in log]
     for index_t, trace in enumerate(log):
         previous_time = 0
         for index, event in enumerate(trace):
@@ -33,75 +45,149 @@ def mean_value_per_Activity(log):
             previous_time = time
     return data, data_durations
 
-def meanAndstdev(data,activity_names)->list:
-    mean_values=[]
-    std_values=[]
+
+def mean_and_stdev(data, activity_names):
+    """
+    Calculate the mean and standard deviation of activity durations.
+
+    Args:
+    data (dict): Dictionary with activity names and their durations.
+    activity_names (list): List of activity names.
+
+    Returns:
+    list: List of mean values for each activity.
+    list: List of standard deviation values for each activity.
+    """
+    mean_values = []
+    std_values = []
     for name in activity_names:
         mean_values.append(mean(data[name][0]))
         std_values.append(stdev(data[name][0]))
-    return mean_values,std_values
+    return mean_values, std_values
 
-def transformTraces(log:EventLog) -> list:
+
+def transform_traces(log: EventLog) -> list:
+    """
+    Transform traces into a format suitable for training the autoencoder.
+
+    Args:
+    log (EventLog): The event log object.
+
+    Returns:
+    list: A list of transformed traces.
+    """
     activities = attributes_filter.get_attribute_values(log, "concept:name")
     activity_names = [i for i in activities]
-    data,data_durations=mean_value_per_Activity(log)
-    log_list=[]
-    for n_trace,trace in enumerate(log):
-        l_trace=[0 for i in range(len(activity_names))]
-        times=[0 for i in range(len(activity_names))]
-        for n_event,event in enumerate(trace):
+    data, data_durations = mean_value_per_activity(log)
+    log_list = []
+    for n_trace, t in enumerate(log):
+        l_trace = [0 for _ in range(len(activity_names))]
+        times = [0 for _ in range(len(activity_names))]
+        for n_event, event in enumerate(t):
             index = activity_names.index(event["concept:name"])
-            l_trace[index]+=data_durations[n_trace][n_event]
-            times[index]+=1
-        l_trace=[x/y if y!=0 else 0 for x,y in zip(l_trace,times)]
-        log_list.append(l_trace)
-    means,stdevs = meanAndstdev(data,activity_names)
-    log_list= [[(x-y)/z if z!=0 else 0 for x,y,z in zip(l,means,stdevs)]for l in log_list]
+            l_trace[index] += data_durations[n_trace][n_event]
+            times[index] += 1
+        log_list.append([l_trace[i] / times[i] if times[i] != 0 else 0 for i in range(len(l_trace))])
     return log_list
 
-def addGaussianNoise(traces:list,mean:float=0,stddev:float=0.1)->list:
-    noisyTraces=[]
-    for trace in traces:
-        noise = np.random.normal(loc=mean,scale=stddev,size=len(trace))
-        noisyTraces.append([i+x for i,x in zip(trace,noise)])
-    return noisyTraces
-    
-    
-    
+
+def add_gaussian_noise(data, mean_value=0, stddev=0.1):
+    """
+    Add Gaussian noise to the data.
+
+    Args:
+    data (list): The input data.
+    mean (float): Mean of the Gaussian noise.
+    stddev (float): Standard deviation of the Gaussian noise.
+
+    Returns:
+    list: Data with added Gaussian noise.
+    """
+    noisy_data = []
+    for d in data:
+        noise = np.random.normal(mean_value, stddev, len(d))
+        noisy_d = d + noise
+        noisy_data.append(noisy_d)
+    return noisy_data
 
 
-#create autoencoder model as in Denoising autoencoders Nolle
-class AE(torch.nn.Module):
-    def __init__(self,length):
-        super().__init__()
-        self.encoder = torch.nn.Linear(in_features=length,out_features=length*2)
-        self.decoder = torch.nn.Linear(in_features=length*2,out_features=length)
-    def forward(self,x):
-        x=F.relu(self.encoder(x))
-        x=F.relu(self.decoder(x))
+# create autoencoder model as in Denoising autoencoders Nolle
+class Autoencoder(torch.nn.Module):
+    """
+    Autoencoder neural network definition.
+    """
+
+    def __init__(self, input_size):
+        super(Autoencoder, self).__init__()
+        self.encoder = torch.nn.Sequential(
+            torch.nn.Linear(input_size, 64),
+            torch.nn.ReLU(),
+            torch.nn.Linear(64, 32),
+            torch.nn.ReLU(),
+            torch.nn.Linear(32, 16),
+            torch.nn.ReLU())
+        self.decoder = torch.nn.Sequential(
+            torch.nn.Linear(16, 32),
+            torch.nn.ReLU(),
+            torch.nn.Linear(32, 64),
+            torch.nn.ReLU(),
+            torch.nn.Linear(64, input_size),
+            torch.nn.ReLU())
+
+    def forward(self, x):
+        x = self.encoder(x)
+        x = self.decoder(x)
         return x
 
-if __name__ =="__main__":   
-    #read xes
-    log=xes_import_factory.apply("input/outliers_30_activities_10k_0.005.xes")
-    
-    #transform it to traces as explained in our paper
-    transformed = transformTraces(log)
-    model = AE(len(transformed[0]))
-    loss_function=torch.nn.MSELoss()
-    optimizer = torch.optim.SGD(model.parameters(),lr=0.01,momentum=0.9,nesterov=True, weight_decay=1e-5)
-    
-    #Create training set byt adding noise
-    tracesWithNoise = addGaussianNoise(transformed)
-    #train on the training set
-    trainSet= [torch.FloatTensor(i) for i in tracesWithNoise ]
-    testSet = [torch.FloatTensor(i) for i in transformed ]
-    
-    epochs = 500
-    train_loss=[]
-    for epoch in range(epochs):
+
+def normalize_losses(losses):
+    """
+    Normalize losses to the range [0, 1].
+
+    Args:
+    losses (list): List of loss values.
+
+    Returns:
+    list: Normalized loss values.
+    """
+    min_loss = min(losses)
+    max_loss = max(losses)
+    return [(loss - min_loss) / (max_loss - min_loss) for loss in losses]
+
+
+if __name__ == "__main__":
+    filename = "input/outliers_30_activities_10k_0.005.xes"
+    outlier_description = "input/results_30_activities_10k_0.005_description"
+    model_name = "model_0.005"
+    epoches = 500
+
+    # Check for GPU availability
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+
+    # Read XES file
+    log = xes_import_factory.apply(filename)
+
+    # Transform traces
+    transformed = transform_traces(log)
+
+    # Create autoencoder model
+    input_size = len(transformed[0])
+    model = Autoencoder(input_size).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    loss_function = torch.nn.MSELoss()
+
+    # Add Gaussian noise to traces
+    tracesWithNoise = add_gaussian_noise(transformed)
+
+    # Train on the training set
+    trainSet = [torch.FloatTensor(i) for i in tracesWithNoise]
+    testSet = [torch.FloatTensor(i) for i in transformed]
+
+    train_loss = []
+    for epoch in range(epoches):
         running_loss = 0.0
-        for trace in [torch.FloatTensor(i) for i in addGaussianNoise(transformed) ]:
+        for trace in [torch.FloatTensor(i) for i in add_gaussian_noise(transformed)]:
             reconstructed = model(trace)
             loss = loss_function(reconstructed, trace)
             optimizer.zero_grad()
@@ -110,57 +196,48 @@ if __name__ =="__main__":
             running_loss += loss.item()
         loss = running_loss / len(trainSet)
         train_loss.append(loss)
-        print('Epoch {} of {}, Train Loss: {:.3f}'.format(epoch+1, epochs, loss))  
-    
-    #save model
-    torch.save(model,"model")
-    
-    
-    
-    #read xes
-    log=xes_import_factory.apply("input/outliers_30_activities_10k_0.005.xes")
-    
-    #transform it to traces as explained in our paper
-    transformed = transformTraces(log)
-    testSet = [torch.FloatTensor(i) for i in transformed ]
-    
-    modelS=torch.load("model_0.005")
+        print('Epoch {} of {}, Train Loss: {:.3f}'.format(epoch + 1, epoches, loss))
+
+    # Process can start from here by importing a previously created model
+    # Save model
+    torch.save(model, f"models/{model_name}")
+
+    # Read XES file again
+    log = xes_import_factory.apply(filename)
+
+    # Transform it to traces
+    transformed = transform_traces(log)
+    testSet = [torch.FloatTensor(i) for i in transformed]
+
+    # Load model
+    modelS = torch.load(f"models/{model_name}")
     modelS.eval()
-    
-    #get results
-    losses=[]
+
+    # Get results
+    losses = []
     for trace in testSet:
-        reconstructed=modelS(trace)
+        reconstructed = modelS(trace)
         loss = loss_function(reconstructed, trace)
         losses.append(loss.item())
-    m=mean(losses)
-    std=stdev(losses)
-    r=[]
-    with open("input/results_30_activities_10k_0.005_description","r") as f:
+    m = mean(losses)
+    std = stdev(losses)
+    r = []
+    with open(outlier_description, "r") as f:
         for line in f:
             r.append(int(line.split(",")[1]))
-    outliers=[]
+    outliers = []
     threshold = sorted(losses)[-len(r)]
-    for i,x in enumerate(losses):
-        if x>=threshold:
+    for i, x in enumerate(losses):
+        if x >= threshold:
             outliers.append(i)
-    
-    
-    #create the roc_curve
-    from sklearn.metrics import RocCurveDisplay,auc,roc_curve
-    losses_normalized = [(float(i)-min(losses))/(max(losses)-min(losses)) for i in losses]
-    true_outliers=[1 if i in r else 0 for i in range(len(losses))]
+
+    losses_normalized = normalize_losses(losses)
+    true_outliers = [1 if i in r else 0 for i in range(len(losses))]
     fprS, tprS, thresholds = roc_curve(true_outliers, losses_normalized)
     roc_auc = auc(fprS, tprS)
-    displayS = RocCurveDisplay(fpr=fprS, tpr=tprS, roc_auc=roc_auc,estimator_name='Denoising autoencoder')
+    displayS = RocCurveDisplay(fpr=fprS, tpr=tprS, roc_auc=roc_auc, estimator_name='Denoising autoencoder')
     displayS.plot()
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    plt.show()
+
     plt.plot(sorted(losses))
+    plt.show()
