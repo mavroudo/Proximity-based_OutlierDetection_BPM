@@ -13,3 +13,5 @@ scala/.idea/*
 
 autoencoders/.idea/
 autoencoders/models/model_*
+distribution_fitting/.idea/
+scala/.idea/
